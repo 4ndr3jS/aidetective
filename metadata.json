@@ -1,0 +1,7 @@
+{
+  "name": "Thorne & Co. Investigation Suite",
+  "description": "A cinematic, noir-inspired detective workspace for solving complex murder mysteries with the help of a sophisticated AI co-investigator.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
