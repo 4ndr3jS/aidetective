@@ -5,9 +5,10 @@ import { Suspect, Statement } from '../types';
 interface SuspectsViewProps {
   suspects: Suspect[];
   statements: Statement[];
+  onUpdateSuspect?: (suspect: Suspect) => void;
 }
 
-const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements }) => {
+const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpdateSuspect }) => {
   const [selectedSuspect, setSelectedSuspect] = useState<Suspect | null>(suspects[0]);
 
   return (
@@ -80,6 +81,11 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements }) => 
                   className="w-full bg-transparent border border-white/5 p-4 text-sm text-white/60 focus:border-[#d4af37] transition-colors outline-none h-32 resize-none"
                   placeholder="Draft your observations here..."
                   defaultValue={selectedSuspect.notes}
+                  onChange={(e) => {
+                    if (onUpdateSuspect) {
+                      onUpdateSuspect({ ...selectedSuspect, notes: e.target.value });
+                    }
+                  }}
                 />
               </div>
             </div>

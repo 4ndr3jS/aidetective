@@ -4,6 +4,7 @@ import { InvestigationCase } from '../types';
 import SuspectsView from './SuspectsView';
 import TimelineView from './TimelineView';
 import CluesView from './CluesView';
+import StatementsView from './StatementsView';
 import TheoriesView from './TheoriesView';
 import AccusationView from './AccusationView';
 import AIAssistant from './AIAssistant';
@@ -11,17 +12,19 @@ import AIAssistant from './AIAssistant';
 interface WorkspaceProps {
   activeCase: InvestigationCase;
   onBack: () => void;
+  onUpdateCase: (updatedCase: InvestigationCase) => void;
 }
 
-type Tab = 'suspects' | 'timeline' | 'clues' | 'theories' | 'accusation';
+type Tab = 'suspects' | 'timeline' | 'clues' | 'statements' | 'theories' | 'accusation';
 
-const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack }) => {
+const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase }) => {
   const [activeTab, setActiveTab] = useState<Tab>('suspects');
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'suspects', label: 'Suspects', icon: <UserIcon /> },
     { id: 'timeline', label: 'Timeline', icon: <ClockIcon /> },
     { id: 'clues', label: 'Evidence', icon: <SearchIcon /> },
+    { id: 'statements', label: 'Statements', icon: <DocumentIcon /> },
     { id: 'theories', label: 'Theories', icon: <LightbulbIcon /> },
     { id: 'accusation', label: 'Accusation', icon: <GavelIcon /> },
   ];
@@ -67,17 +70,69 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack }) => {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative p-8 lg:p-12">
         <div className="max-w-4xl mx-auto">
-          {activeTab === 'suspects' && <SuspectsView suspects={activeCase.suspects} statements={activeCase.statements} />}
-          {activeTab === 'timeline' && <TimelineView timeline={activeCase.timeline} />}
-          {activeTab === 'clues' && <CluesView clues={activeCase.clues} />}
-          {activeTab === 'theories' && <TheoriesView theories={activeCase.theories} />}
-          {activeTab === 'accusation' && <AccusationView suspects={activeCase.suspects} />}
+          {activeTab === 'suspects' && (
+            <SuspectsView 
+              suspects={activeCase.suspects} 
+              statements={activeCase.statements}
+              onUpdateSuspect={(suspect) => {
+                const updated = {
+                  ...activeCase,
+                  suspects: activeCase.suspects.map(s => s.id === suspect.id ? suspect : s)
+                };
+                onUpdateCase(updated);
+              }}
+            />
+          )}
+          {activeTab === 'timeline' && (
+            <TimelineView 
+              timeline={activeCase.timeline}
+              suspects={activeCase.suspects}
+            />
+          )}
+          {activeTab === 'clues' && (
+            <CluesView 
+              clues={activeCase.clues}
+              suspects={activeCase.suspects}
+            />
+          )}
+          {activeTab === 'statements' && (
+            <StatementsView 
+              statements={activeCase.statements}
+              suspects={activeCase.suspects}
+            />
+          )}
+          {activeTab === 'theories' && (
+            <TheoriesView 
+              theories={activeCase.theories}
+              suspects={activeCase.suspects}
+              clues={activeCase.clues}
+            />
+          )}
+          {activeTab === 'accusation' && (
+            <AccusationView 
+              suspects={activeCase.suspects}
+              onPresentCase={(suspectId, reasoning) => {
+                const updated = {
+                  ...activeCase,
+                  status: 'Solved' as const
+                };
+                onUpdateCase(updated);
+              }}
+            />
+          )}
         </div>
       </main>
 
       {/* Persistent AI Assistant */}
       <aside className="w-80 lg:w-96 border-l border-white/5 bg-[#0a0a0a] flex flex-col">
-        <AIAssistant activeCase={activeCase} />
+        <AIAssistant 
+          activeCase={activeCase}
+          onAnalyzeTimeline={() => setActiveTab('timeline')}
+          onAnalyzeSuspect={(id) => {
+            setActiveTab('suspects');
+            // Could scroll to suspect or highlight
+          }}
+        />
       </aside>
     </div>
   );
@@ -90,5 +145,6 @@ const SearchIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentCol
 const LightbulbIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.674a1 1 0 01.992.883l.197 1.771a1 1 0 01-.992 1.112H9.466a1 1 0 01-.992-1.112l.197-1.771a1 1 0 01.992-.883zm-2.122-4.912a5 5 0 116.918 0c.427.311.667.8.667 1.314L15.122 17H8.878l.001-3.598c0-.514.24-1.003.667-1.314z" /></svg>;
 const GavelIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" /></svg>;
 const BackIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>;
+const DocumentIcon = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
 
 export default Workspace;

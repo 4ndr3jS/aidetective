@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { Clue } from '../types';
+import { Clue, Suspect } from '../types';
 
 interface CluesViewProps {
   clues: Clue[];
+  suspects: Suspect[];
 }
 
-const CluesView: React.FC<CluesViewProps> = ({ clues }) => {
+const CluesView: React.FC<CluesViewProps> = ({ clues, suspects }) => {
   return (
     <div className="animate-in fade-in duration-700">
       <div className="flex justify-between items-end mb-8">

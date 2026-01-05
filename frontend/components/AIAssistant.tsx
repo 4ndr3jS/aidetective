@@ -1,15 +1,22 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { InvestigationCase, Message } from '../types';
-import { detectiveAI } from '../geminiService';
+import { detectiveAI } from '../services/geminiService';
 
 interface AIAssistantProps {
   activeCase: InvestigationCase;
+  onAnalyzeTimeline?: () => void;
+  onAnalyzeSuspect?: (suspectId: string) => void;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ activeCase }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ activeCase, onAnalyzeTimeline, onAnalyzeSuspect }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: "Well now, what have we here? A tangled web of intentions. I'm Elias Thorne, at your service. Let's dig through the dirt and find the gems of truth, shall we?" }
+    { 
+      id: 'welcome',
+      role: 'assistant', 
+      content: "Well now, what have we here? A tangled web of intentions. I'm Elias Thorne, at your service. Let's dig through the dirt and find the gems of truth, shall we?",
+      timestamp: new Date()
+    }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -21,21 +28,57 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ activeCase }) => {
     }
   }, [messages, isTyping]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const handleSend = async (message?: string) => {
+    const messageToSend = message || input.trim();
+    if (!messageToSend || isTyping) return;
 
-    const userMessage = input.trim();
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    const userMessage: Message = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: messageToSend,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
 
     try {
-      const response = await detectiveAI.analyzeCase(activeCase, userMessage);
-      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+      const response = await detectiveAI.analyzeCase(activeCase, messageToSend);
+      const assistantMessage: Message = {
+        id: `msg-${Date.now() + 1}`,
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'assistant', content: "Pardon me, I seem to have lost my spectacles. Could you repeat that inquiry?" }]);
+      const errorMessage: Message = {
+        id: `msg-${Date.now() + 1}`,
+        role: 'assistant',
+        content: "Pardon me, I seem to have lost my spectacles. Could you repeat that inquiry?",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
+    }
+  };
+
+  const handleQuickPrompt = async (type: 'timeline' | 'suspect' | 'theory', id?: string) => {
+    if (type === 'timeline') {
+      if (onAnalyzeTimeline) onAnalyzeTimeline();
+      await handleSend("Analyze the timeline for any inconsistencies, gaps, or suspicious patterns.");
+    } else if (type === 'suspect' && id) {
+      if (onAnalyzeSuspect) onAnalyzeSuspect(id);
+      const suspect = activeCase.suspects.find(s => s.id === id);
+      if (suspect) {
+        await handleSend(`Analyze suspect ${suspect.name}. Examine their alibi, motive, and any statements they've made.`);
+      }
+    } else if (type === 'theory' && id) {
+      const theory = activeCase.theories.find(t => t.id === id);
+      if (theory) {
+        await handleSend(`Challenge this theory: "${theory.title} - ${theory.content}". Find any flaws or contradictions.`);
+      }
     }
   };
 
@@ -58,13 +101,34 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ activeCase }) => {
         </div>
       </div>
 
+      {/* Quick Prompts */}
+      <div className="px-6 pt-4 pb-2 border-b border-white/5">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleQuickPrompt('timeline')}
+            className="px-3 py-1.5 text-[10px] uppercase tracking-widest bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-[#d4af37]/30 transition-all"
+          >
+            Analyze Timeline
+          </button>
+          {activeCase.suspects.slice(0, 2).map(suspect => (
+            <button
+              key={suspect.id}
+              onClick={() => handleQuickPrompt('suspect', suspect.id)}
+              className="px-3 py-1.5 text-[10px] uppercase tracking-widest bg-white/5 border border-white/10 text-white/50 hover:text-white hover:border-[#d4af37]/30 transition-all"
+            >
+              Analyze {suspect.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Messages */}
       <div 
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth"
       >
-        {messages.map((m, idx) => (
-          <div key={idx} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+        {messages.map((m) => (
+          <div key={m.id} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
             <span className="text-[8px] uppercase tracking-[0.2em] text-white/20 mb-2">
               {m.role === 'assistant' ? 'Detective Thorne' : 'Investigator'}
             </span>
@@ -105,7 +169,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ activeCase }) => {
             className="w-full bg-white/5 border border-white/10 p-4 pr-12 text-sm text-white/80 focus:border-[#d4af37] outline-none h-24 resize-none transition-all placeholder:text-white/20"
           />
           <button 
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isTyping}
             className="absolute bottom-4 right-4 text-white/30 hover:text-[#d4af37] disabled:opacity-0 transition-all"
           >

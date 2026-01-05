@@ -5,9 +5,10 @@ import { InvestigationCase } from '../types';
 interface DashboardProps {
   cases: InvestigationCase[];
   onSelectCase: (c: InvestigationCase) => void;
+  onNewCase: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ cases, onSelectCase }) => {
+const Dashboard: React.FC<DashboardProps> = ({ cases, onSelectCase, onNewCase }) => {
   return (
     <div className="flex-1 overflow-y-auto bg-[#0a0a0a] p-8 md:p-16">
       <div className="max-w-6xl mx-auto">
@@ -16,7 +17,10 @@ const Dashboard: React.FC<DashboardProps> = ({ cases, onSelectCase }) => {
             <h1 className="text-sm uppercase tracking-[0.3em] text-[#d4af37] font-medium mb-2">Thorne & Co.</h1>
             <h2 className="text-5xl font-serif font-semibold text-white">Investigation Suite</h2>
           </div>
-          <button className="px-6 py-2 bg-white text-black font-medium hover:bg-[#d4af37] hover:text-white transition-colors">
+          <button 
+            onClick={onNewCase}
+            className="px-6 py-2 bg-white text-black font-medium hover:bg-[#d4af37] hover:text-white transition-colors"
+          >
             New Case
           </button>
         </header>

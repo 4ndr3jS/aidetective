@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  body {
+    @apply bg-[#0a0a0a] text-[#e5e5e5] font-sans antialiased;
+  }
+  
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-[#1a1a1a];
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-[#333] rounded-[10px];
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-[#444];
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-fill-mode: both;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.7s ease-in;
+  }
+  
+  .slide-in-from-bottom-4 {
+    animation: slideInFromBottom 0.5s ease-out;
+  }
+  
+  .slide-in-from-top-4 {
+    animation: slideInFromTop 0.5s ease-out;
+  }
+  
+  .zoom-in {
+    animation: zoomIn 1s ease-out;
+  }
+}
+

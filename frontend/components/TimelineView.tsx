@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { TimelineEvent } from '../types';
+import { TimelineEvent, Suspect } from '../types';
 
 interface TimelineViewProps {
   timeline: TimelineEvent[];
+  suspects: Suspect[];
 }
 
-const TimelineView: React.FC<TimelineViewProps> = ({ timeline }) => {
+const TimelineView: React.FC<TimelineViewProps> = ({ timeline, suspects }) => {
   return (
     <div className="animate-in fade-in duration-700">
       <div className="flex justify-between items-end mb-12">
@@ -32,12 +33,15 @@ const TimelineView: React.FC<TimelineViewProps> = ({ timeline }) => {
                   )}
                 </div>
                 
-                <div className="flex gap-2">
-                  {event.involvedSuspects.map(sid => (
-                    <div key={sid} className="px-2 py-0.5 bg-white/5 border border-white/10 text-[9px] uppercase tracking-widest text-white/40">
-                      Ref: {sid}
-                    </div>
-                  ))}
+                <div className="flex gap-2 flex-wrap">
+                  {event.involvedSuspects.map(sid => {
+                    const suspect = suspects.find(s => s.id === sid);
+                    return (
+                      <div key={sid} className="px-2 py-0.5 bg-white/5 border border-white/10 text-[9px] uppercase tracking-widest text-white/40">
+                        {suspect ? suspect.name : `Ref: ${sid}`}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

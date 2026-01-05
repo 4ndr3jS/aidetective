@@ -1,12 +1,14 @@
 
 import React from 'react';
-import { Theory } from '../types';
+import { Theory, Suspect, Clue } from '../types';
 
 interface TheoriesViewProps {
   theories: Theory[];
+  suspects: Suspect[];
+  clues: Clue[];
 }
 
-const TheoriesView: React.FC<TheoriesViewProps> = ({ theories }) => {
+const TheoriesView: React.FC<TheoriesViewProps> = ({ theories, suspects, clues }) => {
   return (
     <div className="animate-in fade-in duration-700">
       <div className="flex justify-between items-end mb-8">
@@ -28,22 +30,28 @@ const TheoriesView: React.FC<TheoriesViewProps> = ({ theories }) => {
             <div className="grid grid-cols-2 gap-8 border-t border-white/5 pt-8">
               <div>
                 <h4 className="text-[10px] uppercase tracking-widest text-[#d4af37] mb-3">Linked Suspects</h4>
-                <div className="flex gap-2">
-                  {theory.linkedSuspects.map(s => (
-                    <span key={s} className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-white/60">
-                      {s === 's1' ? 'Julian Sterling' : s}
-                    </span>
-                  ))}
+                <div className="flex gap-2 flex-wrap">
+                  {theory.linkedSuspects.map(sid => {
+                    const suspect = suspects.find(s => s.id === sid);
+                    return (
+                      <span key={sid} className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-white/60">
+                        {suspect ? suspect.name : sid}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
               <div>
                 <h4 className="text-[10px] uppercase tracking-widest text-[#d4af37] mb-3">Linked Evidence</h4>
-                <div className="flex gap-2">
-                  {theory.linkedClues.map(c => (
-                    <span key={c} className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-white/60">
-                      {c === 'c1' ? 'Cyanide Vial' : 'Burnt Letter'}
-                    </span>
-                  ))}
+                <div className="flex gap-2 flex-wrap">
+                  {theory.linkedClues.map(cid => {
+                    const clue = clues.find(c => c.id === cid);
+                    return (
+                      <span key={cid} className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-white/60">
+                        {clue ? clue.title : cid}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             </div>

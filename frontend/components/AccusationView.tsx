@@ -4,9 +4,10 @@ import { Suspect } from '../types';
 
 interface AccusationViewProps {
   suspects: Suspect[];
+  onPresentCase?: (suspectId: string, reasoning: string) => void;
 }
 
-const AccusationView: React.FC<AccusationViewProps> = ({ suspects }) => {
+const AccusationView: React.FC<AccusationViewProps> = ({ suspects, onPresentCase }) => {
   const [target, setTarget] = useState<string>('');
   const [reasoning, setReasoning] = useState<string>('');
   const [submitted, setSubmitted] = useState(false);
@@ -63,7 +64,14 @@ const AccusationView: React.FC<AccusationViewProps> = ({ suspects }) => {
         </div>
 
         <button 
-          onClick={() => target && reasoning && setSubmitted(true)}
+          onClick={() => {
+            if (target && reasoning) {
+              if (onPresentCase) {
+                onPresentCase(target, reasoning);
+              }
+              setSubmitted(true);
+            }
+          }}
           disabled={!target || !reasoning}
           className={`w-full py-6 text-xs uppercase tracking-[0.5em] font-semibold transition-all ${
             target && reasoning ? 'bg-white text-black hover:bg-[#d4af37] hover:text-white' : 'bg-white/5 text-white/20 cursor-not-allowed'
