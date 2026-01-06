@@ -1,13 +1,18 @@
 from fastapi import FastAPI, WebSocket, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from models import *
 import duckdb
 import json
 import uuid
 import io
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Casemate API",
+    description="API for managing detective cases, parties, evidences, theories, and timelines",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +21,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 conn = duckdb.connect("database.db")
 
@@ -47,18 +53,16 @@ def fetch_dict(result, size=-1):
     return data
 
 
-@app.get("/api/cases", tags=["cases"])
-def get_cases():
+@app.get("/api/cases", tags=["cases"], response_model=List[ShortCaseModel])
+def get_cases() -> List[ShortCaseModel]:
     result = conn.execute("SELECT id, name, short_description FROM cases;")
     data = fetch_dict(result)
     return data
 
 
-@app.delete("/api/cases", tags=["cases"])
-def delete_case(data: dict):
-    case_id = data.get("id")
-    if case_id is None:
-        raise HTTPException(status_code=400, detail="Missing id")
+@app.delete("/api/cases", tags=["cases"], response_model=SuccessResponse)
+def delete_case(data: CaseInputModel) -> SuccessResponse:
+    case_id = data.caseid
     conn.execute("DELETE FROM parties WHERE case_id=?", (case_id,))
     conn.execute("DELETE FROM evidences WHERE case_id=?", (case_id,))
     conn.execute("DELETE FROM theories WHERE case_id=?", (case_id,))
@@ -68,33 +72,25 @@ def delete_case(data: dict):
     return {"success": True}
 
 
-@app.patch("/api/cases", tags=["cases"])
-def patch_case(data: dict):
-    case_id = data.get("id")
+@app.patch("/api/cases", tags=["cases"], response_model=SuccessResponse)
+def patch_case(case_id: str, data: CaseUpdateModel) -> SuccessResponse:
     if case_id is None:
         raise HTTPException(status_code=400, detail="Missing id")
     keys = ['name', 'short_description', 'detective']
 
     for key in keys:
-        if key not in data:
-            continue
-        conn.execute(f"UPDATE cases SET {key}=? WHERE id=?", (data[key], case_id))
+        if getattr(data, key) is not None:
+            conn.execute(f"UPDATE cases SET {key}=? WHERE id=?", (getattr(data, key), case_id))
 
     conn.commit()
     return {"success": True}
 
 
-@app.put("/api/cases", tags=["cases"])
-def create_case(data: dict):
-    name = data.get('name')
-    if name is None:
-        raise HTTPException(status_code=400, detail="Missing name")
-    detective = data.get('detective')
-    short_description = data.get('short_description')
-
-    conn.execute("INSERT INTO cases (name, detective, short_description) VALUES (?, ?, ?) RETURNING id;", (name, detective, short_description))
+@app.put("/api/cases", tags=["cases"], response_model=IDResponse)
+def create_case(data: ShortCaseInputModel) -> IDResponse:
+    conn.execute("INSERT INTO cases (name, detective, short_description) VALUES (?, NULL, ?) RETURNING id;", (data.name, data.short_description))
     conn.commit()
-    return str(conn.fetchone()[0])
+    return {"id": str(conn.fetchone()[0])}
 
 @app.get("/api/parties/{id}/image", tags=["parties", "images"])
 def get_party_image(id):
@@ -116,12 +112,8 @@ async def upload_party_image(id: str, file: UploadFile = File(...)):
     return {"success": True}
 
 @app.post("/api/parties", tags=["parties"])
-def get_parties_by_case(data: dict):
-    caseid = data.get("caseid")
-    if caseid is None:
-        raise HTTPException(status_code=400, detail="Missing caseid")
-
-    result = conn.execute("SELECT id, name, role, description, alibi FROM parties WHERE case_id=?", (caseid, ))
+def get_parties_by_case(data: CaseInputModel) -> Dict[str, PartyModel]:
+    result = conn.execute("SELECT id, name, role, description, alibi FROM parties WHERE case_id=?", (data.caseid, ))
     parties_data = fetch_dict(result)
     response_data = {}
 
