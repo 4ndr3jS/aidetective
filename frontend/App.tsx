@@ -1,38 +1,23 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { InvestigationCase } from './types';
-import { supabase } from './services/supabaseClient';
+
 import { dbService } from './services/dbService';
 import AuthView from './components/AuthView';
 import Dashboard from './components/Dashboard';
 import Workspace from './components/Workspace';
 
 const App: React.FC = () => {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<boolean>(true);
   const [activeCase, setActiveCase] = useState<InvestigationCase | null>(null);
   const [cases, setCases] = useState<InvestigationCase[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // No auth loading needed
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    loadCases();
   }, []);
 
-  useEffect(() => {
-    if (session) {
-      loadCases();
-    }
-  }, [session]);
+  // Removed supabase auth effects
 
   const loadCases = async () => {
     try {
