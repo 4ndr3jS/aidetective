@@ -128,14 +128,21 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase 
             <SuspectsView
               suspects={activeCase.parties}
               statements={activeCase.statements}
-              onUpdateSuspect={(suspect) => {
+              onUpdateSuspect={async (suspect) => {
+                const updatedSuspect = await dbService.updateSuspect(suspect.id, suspect);
                 const updated = {
                   ...activeCase,
-                  parties: activeCase.parties.map(s => s.id === suspect.id ? suspect : s)
+                  parties: activeCase.parties.map(s => s.id === suspect.id ? updatedSuspect : s)
                 };
                 onUpdateCase(updated);
               }}
               onAddSuspect={handleAddSuspect}
+              onDeleteSuspect={async (id) => {
+                if (confirm('Are you sure you want to delete this suspect?')) {
+                  await dbService.deleteSuspect(id);
+                  onUpdateCase({ ...activeCase, parties: activeCase.parties.filter(s => s.id !== id) });
+                }
+              }}
             />
           )}
           {activeTab === 'timeline' && (
@@ -143,6 +150,16 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase 
               timeline={activeCase.timeline}
               suspects={activeCase.parties}
               onAddEvent={handleAddTimelineEvent}
+              onUpdateEvent={async (event) => {
+                const updatedEvent = await dbService.updateTimelineEvent(event.id, event);
+                onUpdateCase({ ...activeCase, timeline: activeCase.timeline.map(e => e.id === event.id ? updatedEvent : e) });
+              }}
+              onDeleteEvent={async (id) => {
+                if (confirm('Delete this event?')) {
+                  await dbService.deleteTimelineEvent(id);
+                  onUpdateCase({ ...activeCase, timeline: activeCase.timeline.filter(e => e.id !== id) });
+                }
+              }}
             />
           )}
           {activeTab === 'clues' && (
@@ -150,6 +167,16 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase 
               clues={activeCase.clues}
               suspects={activeCase.parties}
               onAddClue={handleAddClue}
+              onUpdateClue={async (clue) => {
+                const updatedClue = await dbService.updateClue(clue.id, clue);
+                onUpdateCase({ ...activeCase, clues: activeCase.clues.map(c => c.id === clue.id ? updatedClue : c) });
+              }}
+              onDeleteClue={async (id) => {
+                if (confirm('Delete this evidence?')) {
+                  await dbService.deleteClue(id);
+                  onUpdateCase({ ...activeCase, clues: activeCase.clues.filter(c => c.id !== id) });
+                }
+              }}
             />
           )}
           {activeTab === 'statements' && (
@@ -157,6 +184,16 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase 
               statements={activeCase.statements}
               suspects={activeCase.parties}
               onAddStatement={handleAddStatement}
+              onUpdateStatement={async (statement) => {
+                const updatedSt = await dbService.updateStatement(statement.id, statement);
+                onUpdateCase({ ...activeCase, statements: activeCase.statements.map(s => s.id === statement.id ? updatedSt : s) });
+              }}
+              onDeleteStatement={async (id) => {
+                if (confirm('Delete this statement?')) {
+                  await dbService.deleteStatement(id);
+                  onUpdateCase({ ...activeCase, statements: activeCase.statements.filter(s => s.id !== id) });
+                }
+              }}
             />
           )}
           {activeTab === 'theories' && (
@@ -165,6 +202,16 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase 
               suspects={activeCase.parties}
               clues={activeCase.clues}
               onAddTheory={handleAddTheory}
+              onUpdateTheory={async (theory) => {
+                const updatedTh = await dbService.updateTheory(theory.id, theory);
+                onUpdateCase({ ...activeCase, theories: activeCase.theories.map(t => t.id === theory.id ? updatedTh : t) });
+              }}
+              onDeleteTheory={async (id) => {
+                if (confirm('Delete this theory?')) {
+                  await dbService.deleteTheory(id);
+                  onUpdateCase({ ...activeCase, theories: activeCase.theories.filter(t => t.id !== id) });
+                }
+              }}
             />
           )}
           {activeTab === 'accusation' && (

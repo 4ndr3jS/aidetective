@@ -1,4 +1,5 @@
 
+
 import React, { useState } from 'react';
 import { Suspect, Statement } from '../types';
 
@@ -7,12 +8,15 @@ interface SuspectsViewProps {
   statements: Statement[];
   onUpdateSuspect?: (suspect: Suspect) => void;
   onAddSuspect?: (suspect: Partial<Suspect>) => void;
+  onDeleteSuspect?: (id: string) => void;
 }
 
-const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpdateSuspect, onAddSuspect }) => {
-  const [selectedSuspect, setSelectedSuspect] = useState<Suspect | null>(suspects[0]);
+const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpdateSuspect, onAddSuspect, onDeleteSuspect }) => {
+  const [selectedSuspect, setSelectedSuspect] = useState<Suspect | null>(suspects[0] || null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [newSuspect, setNewSuspect] = useState<Partial<Suspect>>({ name: '', role: '', motive: '', alibi: '' });
+  const [editForm, setEditForm] = useState<Partial<Suspect>>({});
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +26,16 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
       setIsAdding(false);
     } else {
       alert("Please fill in at least the Name and Role.");
+    }
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUpdateSuspect && selectedSuspect && editForm.name) {
+      onUpdateSuspect({ ...selectedSuspect, ...editForm } as Suspect);
+      setIsEditing(false);
+      // Update selected local state immediately for better UX
+      setSelectedSuspect({ ...selectedSuspect, ...editForm } as Suspect);
     }
   };
 
@@ -82,24 +96,6 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
                 placeholder="Gardener"
               />
             </div>
-            <div>
-              <label className="block text-[10px] uppercase text-white/40 mb-1">Alibi</label>
-              <input
-                className="w-full bg-[#0a0a0a] border border-white/10 text-white p-2 text-sm focus:border-[#d4af37] outline-none"
-                value={newSuspect.alibi}
-                onChange={e => setNewSuspect({ ...newSuspect, alibi: e.target.value })}
-                placeholder="Where were they?"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] uppercase text-white/40 mb-1">Motive</label>
-              <input
-                className="w-full bg-[#0a0a0a] border border-white/10 text-white p-2 text-sm focus:border-[#d4af37] outline-none"
-                value={newSuspect.motive}
-                onChange={e => setNewSuspect({ ...newSuspect, motive: e.target.value })}
-                placeholder="Why would they do it?"
-              />
-            </div>
           </div>
           <div className="flex justify-end pt-2">
             <button type="submit" className="px-6 py-2 bg-[#d4af37] text-black text-xs uppercase font-bold tracking-widest">
@@ -113,10 +109,20 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
         {suspects.map((s) => (
           <div
             key={s.id}
-            onClick={() => setSelectedSuspect(s)}
+            onClick={() => { setSelectedSuspect(s); setIsEditing(false); }}
             className={`cursor-pointer transition-all border p-4 group overflow-hidden relative ${selectedSuspect?.id === s.id ? 'border-[#d4af37] bg-white/5' : 'border-white/5 hover:border-white/20'
               }`}
           >
+            {/* Delete Button (Small x) */}
+            {onDeleteSuspect && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDeleteSuspect(s.id); if (selectedSuspect?.id === s.id) setSelectedSuspect(null); }}
+                className="absolute top-2 right-2 text-white/20 hover:text-red-500 z-10"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+
             {s.imageUrl && s.imageUrl.startsWith('http') ? (
               <img src={s.imageUrl} alt={s.name} className="w-full aspect-[4/5] object-cover mb-4 grayscale group-hover:grayscale-0 transition-all duration-500" />
             ) : (
@@ -132,26 +138,68 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
       </div>
 
       {selectedSuspect && (
-        <div className="border-t border-white/10 pt-8 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="border-t border-white/10 pt-8 animate-in slide-in-from-bottom-4 duration-500 relative">
+          <div className="absolute top-8 right-0 flex gap-2">
+            <button
+              onClick={() => {
+                setIsEditing(!isEditing);
+                setEditForm(selectedSuspect);
+              }}
+              className="text-xs uppercase tracking-widest text-white/40 hover:text-[#d4af37]"
+            >
+              {isEditing ? 'Cancel Edit' : 'Edit Profile'}
+            </button>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-12">
             <div>
               <h4 className="text-xs uppercase tracking-[0.2em] text-[#d4af37] mb-4">Official Profile</h4>
-              <p className="text-white/80 leading-relaxed mb-8 italic">"{selectedSuspect.description}"</p>
 
-              <div className="space-y-6">
-                <section>
-                  <h5 className="text-[10px] uppercase tracking-widest text-white/40 mb-2">Verified Alibi</h5>
-                  <div className="p-4 bg-white/5 border border-white/5 text-sm text-white/70">
-                    {selectedSuspect.alibi}
+              {isEditing ? (
+                <form onSubmit={handleUpdate} className="space-y-4 bg-white/5 p-6 border border-white/10">
+                  <div>
+                    <label className="text-[10px] uppercase text-white/40">Name</label>
+                    <input className="w-full bg-[#0a0a0a] text-white p-2 border border-white/10" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
                   </div>
-                </section>
-                <section>
-                  <h5 className="text-[10px] uppercase tracking-widest text-white/40 mb-2">Presumed Motive</h5>
-                  <div className="p-4 bg-red-900/10 border border-red-900/20 text-sm text-red-100/70">
-                    {selectedSuspect.motive}
+                  <div>
+                    <label className="text-[10px] uppercase text-white/40">Role</label>
+                    <input className="w-full bg-[#0a0a0a] text-white p-2 border border-white/10" value={editForm.role || ''} onChange={e => setEditForm({ ...editForm, role: e.target.value })} />
                   </div>
-                </section>
-              </div>
+                  <div>
+                    <label className="text-[10px] uppercase text-white/40">Description</label>
+                    <textarea className="w-full bg-[#0a0a0a] text-white p-2 border border-white/10 h-24" value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] uppercase text-white/40">Alibi</label>
+                      <input className="w-full bg-[#0a0a0a] text-white p-2 border border-white/10" value={editForm.alibi || ''} onChange={e => setEditForm({ ...editForm, alibi: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-[10px] uppercase text-white/40">Motive</label>
+                      <input className="w-full bg-[#0a0a0a] text-white p-2 border border-white/10" value={editForm.motive || ''} onChange={e => setEditForm({ ...editForm, motive: e.target.value })} />
+                    </div>
+                  </div>
+                  <button type="submit" className="w-full py-2 bg-[#d4af37] text-black uppercase font-bold text-xs tracking-widest">Save Changes</button>
+                </form>
+              ) : (
+                <>
+                  <p className="text-white/80 leading-relaxed mb-8 italic">"{selectedSuspect.description}"</p>
+                  <div className="space-y-6">
+                    <section>
+                      <h5 className="text-[10px] uppercase tracking-widest text-white/40 mb-2">Verified Alibi</h5>
+                      <div className="p-4 bg-white/5 border border-white/5 text-sm text-white/70">
+                        {selectedSuspect.alibi || 'No alibi recorded.'}
+                      </div>
+                    </section>
+                    <section>
+                      <h5 className="text-[10px] uppercase tracking-widest text-white/40 mb-2">Presumed Motive</h5>
+                      <div className="p-4 bg-red-900/10 border border-red-900/20 text-sm text-red-100/70">
+                        {selectedSuspect.motive || 'Motive unclear.'}
+                      </div>
+                    </section>
+                  </div>
+                </>
+              )}
             </div>
 
             <div>
@@ -178,7 +226,7 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
                   className="w-full bg-transparent border border-white/5 p-4 text-sm text-white/60 focus:border-[#d4af37] transition-colors outline-none h-32 resize-none"
                   placeholder="Draft your observations here..."
                   defaultValue={selectedSuspect.notes}
-                  onChange={(e) => {
+                  onBlur={(e) => { // Save on blur not change to avoid too many writes
                     if (onUpdateSuspect) {
                       onUpdateSuspect({ ...selectedSuspect, notes: e.target.value });
                     }

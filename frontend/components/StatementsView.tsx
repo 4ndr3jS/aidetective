@@ -5,13 +5,17 @@ interface StatementsViewProps {
   statements: Statement[];
   suspects: Suspect[];
   onAddStatement?: (statement: Partial<Statement>) => void;
+  onUpdateStatement?: (statement: Statement) => void;
+  onDeleteStatement?: (id: string) => void;
 }
 
-const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, onAddStatement }) => {
+const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, onAddStatement, onUpdateStatement, onDeleteStatement }) => {
   const [filterBySuspect, setFilterBySuspect] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'time' | 'speaker'>('time');
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [newStatement, setNewStatement] = useState<Partial<Statement>>({ content: '', speakerId: '', speakerName: '', timestamp: '', context: '' });
+  const [editForm, setEditForm] = useState<Partial<Statement>>({});
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,6 +24,19 @@ const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, o
       onAddStatement({ ...newStatement, speakerName: suspect?.name || 'Unknown' });
       setNewStatement({ content: '', speakerId: '', speakerName: '', timestamp: '', context: '' });
       setIsAdding(false);
+    }
+  };
+
+  const handleUpdate = (e: React.FormEvent, original: Statement) => {
+    e.preventDefault();
+    if (onUpdateStatement) {
+      const suspect = suspects.find(s => s.id === editForm.speakerId);
+      onUpdateStatement({
+        ...original,
+        ...editForm,
+        speakerName: suspect?.name || original.speakerName
+      } as Statement);
+      setEditingId(null);
     }
   };
 
@@ -105,8 +122,8 @@ const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, o
           <button
             onClick={() => setFilterBySuspect(null)}
             className={`px-4 py-1.5 text-xs uppercase tracking-widest transition-all ${filterBySuspect === null
-                ? 'bg-[#d4af37]/20 border border-[#d4af37] text-[#d4af37]'
-                : 'bg-white/5 border border-white/10 text-white/40 hover:text-white/70'
+              ? 'bg-[#d4af37]/20 border border-[#d4af37] text-[#d4af37]'
+              : 'bg-white/5 border border-white/10 text-white/40 hover:text-white/70'
               }`}
           >
             All Speakers
@@ -116,8 +133,8 @@ const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, o
               key={suspect.id}
               onClick={() => setFilterBySuspect(suspect.id)}
               className={`px-4 py-1.5 text-xs uppercase tracking-widest transition-all ${filterBySuspect === suspect.id
-                  ? 'bg-[#d4af37]/20 border border-[#d4af37] text-[#d4af37]'
-                  : 'bg-white/5 border border-white/10 text-white/40 hover:text-white/70'
+                ? 'bg-[#d4af37]/20 border border-[#d4af37] text-[#d4af37]'
+                : 'bg-white/5 border border-white/10 text-white/40 hover:text-white/70'
                 }`}
             >
               {suspect.name}
@@ -129,8 +146,8 @@ const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, o
           <button
             onClick={() => setSortBy('time')}
             className={`px-4 py-1.5 text-xs uppercase tracking-widest transition-all ${sortBy === 'time'
-                ? 'bg-white/10 text-white'
-                : 'bg-white/5 text-white/40 hover:text-white/70'
+              ? 'bg-white/10 text-white'
+              : 'bg-white/5 text-white/40 hover:text-white/70'
               }`}
           >
             Time
@@ -138,8 +155,8 @@ const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, o
           <button
             onClick={() => setSortBy('speaker')}
             className={`px-4 py-1.5 text-xs uppercase tracking-widest transition-all ${sortBy === 'speaker'
-                ? 'bg-white/10 text-white'
-                : 'bg-white/5 text-white/40 hover:text-white/70'
+              ? 'bg-white/10 text-white'
+              : 'bg-white/5 text-white/40 hover:text-white/70'
               }`}
           >
             Speaker
@@ -156,53 +173,87 @@ const StatementsView: React.FC<StatementsViewProps> = ({ statements, suspects, o
         ) : (
           sortedStatements.map((statement) => {
             const suspect = suspects.find(s => s.id === statement.speakerId);
+            const isEditingItem = editingId === statement.id;
+
             return (
               <div
                 key={statement.id}
                 className="group relative p-8 bg-[#0a0a0a] border border-white/5 hover:border-white/10 transition-all"
               >
-                {/* Speaker Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    {suspect && (
-                      <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10">
-                        <img
-                          src={suspect.imageUrl}
-                          alt={suspect.name}
-                          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <h3 className="text-lg font-serif text-white mb-1">{statement.speakerName}</h3>
-                      {suspect && (
-                        <span className="text-[10px] uppercase tracking-widest text-[#d4af37]">{suspect.role}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs font-mono text-white/40 mb-1">{statement.timestamp}</div>
-                    {statement.context && (
-                      <div className="text-[10px] text-white/20 uppercase tracking-widest">{statement.context}</div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Statement Content */}
-                <div className="relative pl-6 border-l-2 border-[#d4af37]/30">
-                  <span className="text-white/20 text-3xl absolute -left-2 top-0 font-serif">"</span>
-                  <p className="text-white/70 text-base leading-relaxed italic relative z-10 pl-4">
-                    {statement.content}
-                  </p>
-                  <span className="text-white/20 text-3xl absolute -bottom-4 right-4 font-serif">"</span>
-                </div>
-
-                {/* Comparison Hint */}
-                <div className="mt-6 pt-4 border-t border-white/5">
-                  <button className="text-[10px] uppercase tracking-widest text-white/30 hover:text-[#d4af37] transition-colors">
-                    Compare with other statements →
+                {/* Actions */}
+                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                  <button
+                    onClick={() => { setEditingId(statement.id); setEditForm(statement); }}
+                    className="p-1 hover:text-[#d4af37] text-white/40"
+                  >
+                    <span className="text-xs uppercase">Edit</span>
                   </button>
+                  {onDeleteStatement && (
+                    <button
+                      onClick={() => onDeleteStatement(statement.id)}
+                      className="p-1 hover:text-red-500 text-white/40"
+                    >
+                      <span className="text-xs uppercase">Delete</span>
+                    </button>
+                  )}
                 </div>
+
+                {isEditingItem ? (
+                  <form onSubmit={(e) => handleUpdate(e, statement)} className="space-y-3 relative z-10">
+                    <select
+                      className="w-full bg-white/5 border border-white/10 p-2 text-white"
+                      value={editForm.speakerId}
+                      onChange={(e) => setEditForm({ ...editForm, speakerId: e.target.value })}
+                    >
+                      {suspects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                    <textarea className="w-full bg-white/5 border border-white/10 p-2 text-white text-xs h-32" value={editForm.content} onChange={e => setEditForm({ ...editForm, content: e.target.value })} />
+                    <input className="w-full bg-white/5 border border-white/10 p-2 text-white" value={editForm.timestamp} onChange={e => setEditForm({ ...editForm, timestamp: e.target.value })} />
+
+                    <div className="flex justify-between items-center">
+                      <button type="button" onClick={() => setEditingId(null)} className="text-xs text-white/40 hover:text-white">Cancel</button>
+                      <button type="submit" className="text-xs text-[#d4af37] border border-[#d4af37] px-3 py-1">Save</button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    {/* Speaker Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        {suspect && (
+                          <div className="w-12 h-12 rounded-full overflow-hidden border border-white/10">
+                            <img
+                              src={suspect.imageUrl}
+                              alt={suspect.name}
+                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all"
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="text-lg font-serif text-white mb-1">{statement.speakerName}</h3>
+                          {suspect && (
+                            <span className="text-[10px] uppercase tracking-widest text-[#d4af37]">{suspect.role}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs font-mono text-white/40 mb-1">{statement.timestamp}</div>
+                        {statement.context && (
+                          <div className="text-[10px] text-white/20 uppercase tracking-widest">{statement.context}</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Statement Content */}
+                    <div className="relative pl-6 border-l-2 border-[#d4af37]/30">
+                      <span className="text-white/20 text-3xl absolute -left-2 top-0 font-serif">"</span>
+                      <p className="text-white/70 text-base leading-relaxed italic relative z-10 pl-4">
+                        {statement.content}
+                      </p>
+                      <span className="text-white/20 text-3xl absolute -bottom-4 right-4 font-serif">"</span>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })
