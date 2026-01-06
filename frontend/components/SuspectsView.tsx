@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Suspect, Statement } from '../types';
+import { dbService } from '../services/dbService';
 
 interface SuspectsViewProps {
   suspects: Suspect[];
@@ -17,6 +18,34 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
   const [isEditing, setIsEditing] = useState(false);
   const [newSuspect, setNewSuspect] = useState<Partial<Suspect>>({ name: '', role: '', motive: '', alibi: '' });
   const [editForm, setEditForm] = useState<Partial<Suspect>>({});
+  const [uploadingSuspectId, setUploadingSuspectId] = useState<string | null>(null);
+
+  const handleImageUpload = async (suspectId: string, file: File) => {
+    try {
+      setUploadingSuspectId(suspectId);
+      await dbService.uploadSuspectImage(suspectId, file);
+
+      // Update the suspect's imageUrl to trigger re-render
+      if (onUpdateSuspect) {
+        const suspect = suspects.find(s => s.id === suspectId);
+        if (suspect) {
+          const updatedSuspect = {
+            ...suspect,
+            imageUrl: `https://acd4725c4ea3.ngrok-free.app/api/parties/${suspectId}/image?t=${Date.now()}`
+          };
+          onUpdateSuspect(updatedSuspect);
+          if (selectedSuspect?.id === suspectId) {
+            setSelectedSuspect(updatedSuspect);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingSuspectId(null);
+    }
+  };
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,13 +152,46 @@ const SuspectsView: React.FC<SuspectsViewProps> = ({ suspects, statements, onUpd
               </button>
             )}
 
-            {s.imageUrl && s.imageUrl.startsWith('http') ? (
-              <img src={s.imageUrl} alt={s.name} className="w-full aspect-[4/5] object-cover mb-4 grayscale group-hover:grayscale-0 transition-all duration-500" />
-            ) : (
-              <div className={`w-full aspect-square mb-4 bg-gradient-to-br ${getPlaceholderColor(s.name)} flex items-center justify-center border border-white/5`}>
-                <span className="text-4xl font-serif text-white/20 font-bold">{getInitials(s.name)}</span>
-              </div>
-            )}
+            {/* Image Upload Button */}
+            <div className="relative">
+              <input
+                type="file"
+                accept="image/*"
+                id={`upload-${s.id}`}
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleImageUpload(s.id, file);
+                  }
+                }}
+              />
+              <label
+                htmlFor={`upload-${s.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-2 left-2 z-10 p-2 bg-black/60 hover:bg-[#d4af37]/80 text-white hover:text-black rounded-full cursor-pointer transition-all opacity-0 group-hover:opacity-100"
+                title="Upload Image"
+              >
+                {uploadingSuspectId === s.id ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </label>
+
+              {s.imageUrl && s.imageUrl.startsWith('http') ? (
+                <img src={s.imageUrl} alt={s.name} className="w-full aspect-[4/5] object-cover mb-4 grayscale group-hover:grayscale-0 transition-all duration-500" />
+              ) : (
+                <div className={`w-full aspect-square mb-4 bg-gradient-to-br ${getPlaceholderColor(s.name)} flex items-center justify-center border border-white/5`}>
+                  <span className="text-4xl font-serif text-white/20 font-bold">{getInitials(s.name)}</span>
+                </div>
+              )}
+            </div>
 
             <div className="text-xs uppercase tracking-widest text-[#d4af37] mb-1 truncate">{s.role}</div>
             <h3 className="text-xl font-serif text-white truncate">{s.name}</h3>
