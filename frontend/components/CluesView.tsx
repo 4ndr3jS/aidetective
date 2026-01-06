@@ -93,6 +93,30 @@ const CluesView: React.FC<CluesViewProps> = ({ clues, suspects, onAddClue, onUpd
                 </select>
               </div>
             </div>
+            <div>
+              <label className="block text-[10px] uppercase text-white/40 mb-2">Linked Suspects</label>
+              <div className="flex flex-wrap gap-2">
+                {suspects.map(s => (
+                  <button
+                    type="button"
+                    key={s.id}
+                    onClick={() => {
+                      const current = newClue.linkedSuspects || [];
+                      const updated = current.includes(s.id)
+                        ? current.filter(id => id !== s.id)
+                        : [...current, s.id];
+                      setNewClue({ ...newClue, linkedSuspects: updated });
+                    }}
+                    className={`px-3 py-1 text-xs border transition-colors ${(newClue.linkedSuspects || []).includes(s.id)
+                        ? 'bg-[#d4af37] text-black border-[#d4af37]'
+                        : 'bg-transparent border-white/10 text-white/40 hover:border-white/40'
+                      }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="flex justify-end pt-2">
             <button type="submit" className="px-6 py-2 bg-[#d4af37] text-black text-xs uppercase font-bold tracking-widest">
@@ -135,6 +159,33 @@ const CluesView: React.FC<CluesViewProps> = ({ clues, suspects, onAddClue, onUpd
                 <form onSubmit={(e) => handleUpdate(e, clue)} className="space-y-3 relative z-10">
                   <input className="w-full bg-white/5 border border-white/10 p-2 text-white" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
                   <textarea className="w-full bg-white/5 border border-white/10 p-2 text-white text-xs h-20" value={editForm.description} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
+
+                  {/* Edit Linked Suspects */}
+                  <div>
+                    <label className="block text-[10px] uppercase text-white/40 mb-2">Linked Suspects</label>
+                    <div className="flex flex-wrap gap-2">
+                      {suspects.map(s => (
+                        <button
+                          type="button"
+                          key={s.id}
+                          onClick={() => {
+                            const current = editForm.linkedSuspects || [];
+                            const updated = current.includes(s.id)
+                              ? current.filter(id => id !== s.id)
+                              : [...current, s.id];
+                            setEditForm({ ...editForm, linkedSuspects: updated });
+                          }}
+                          className={`px-3 py-1 text-xs border transition-colors ${(editForm.linkedSuspects || []).includes(s.id)
+                              ? 'bg-[#d4af37] text-black border-[#d4af37]'
+                              : 'bg-transparent border-white/10 text-white/40 hover:border-white/40'
+                            }`}
+                        >
+                          {s.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center">
                     <button type="button" onClick={() => setEditingId(null)} className="text-xs text-white/40 hover:text-white">Cancel</button>
                     <button type="submit" className="text-xs text-[#d4af37] border border-[#d4af37] px-3 py-1">Save</button>
@@ -151,15 +202,29 @@ const CluesView: React.FC<CluesViewProps> = ({ clues, suspects, onAddClue, onUpd
                   </div>
 
                   <h3 className="text-2xl font-serif text-white mb-3 group-hover:text-[#d4af37] transition-colors">{clue.title}</h3>
-                  <p className="text-sm text-white/50 leading-relaxed italic mb-8">
+                  <p className="text-sm text-white/50 leading-relaxed italic mb-4">
                     {clue.description}
                   </p>
+
+                  {/* Display Linked Suspects */}
+                  {clue.linkedSuspects && clue.linkedSuspects.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {clue.linkedSuspects.map(sid => {
+                        const suspect = suspects.find(s => s.id === sid);
+                        return suspect ? (
+                          <span key={sid} className="text-[10px] uppercase border border-white/10 px-2 py-0.5 text-white/40">
+                            Link: {suspect.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
               {!isEditingItem && (
                 <div className="flex items-center justify-between border-t border-white/5 pt-4">
-                  <button className="text-[10px] uppercase tracking-widest text-[#d4af37] hover:underline">Link to Suspect</button>
+                  <button onClick={() => { setEditingId(clue.id); setEditForm(clue); }} className="text-[10px] uppercase tracking-widest text-[#d4af37] hover:underline">Link to Suspect</button>
                   <button className="text-[10px] uppercase tracking-widest text-white/30 hover:text-white">Request Forensics</button>
                 </div>
               )}

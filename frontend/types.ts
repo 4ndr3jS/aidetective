@@ -17,6 +17,7 @@ export interface Clue {
   description: string;
   source: string;
   confidence: 'Confirmed' | 'Questionable' | 'Disputed';
+  linkedSuspects?: string[];
 }
 
 export interface TimelineEvent {
@@ -62,5 +63,45 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+}
+
+export interface AccusationResult {
+  case_overview: {
+    summary: string;
+  };
+  victim_profile: {
+    name: string;
+    background: string;
+  };
+  suspects_analysis: {
+    suspect_id: string;
+    name: string;
+    initial_suspicion: string;
+    why_not_guilty: string;
+  }[];
+  key_evidence: {
+    evidence_id: string;
+    description: string;
+    importance: string;
+  }[];
+  timeline_reconstruction: {
+    time: string;
+    event: string;
+    implication: string;
+  }[];
+  motive: {
+    description: string;
+  };
+  method: {
+    description: string;
+  };
+  killer_reveal: {
+    suspect_id: string;
+    name: string;
+    reveal_line: string;
+  };
+  final_monologue: {
+    text: string;
+  };
 }
 

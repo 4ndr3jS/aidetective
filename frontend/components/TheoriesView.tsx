@@ -72,6 +72,57 @@ const TheoriesView: React.FC<TheoriesViewProps> = ({ theories, suspects, clues, 
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-[10px] uppercase text-white/40 mb-2">Implicated Suspects</label>
+              <div className="flex flex-wrap gap-2">
+                {suspects.map(s => (
+                  <button
+                    type="button"
+                    key={s.id}
+                    onClick={() => {
+                      const current = newTheory.linkedSuspects || [];
+                      const updated = current.includes(s.id)
+                        ? current.filter(id => id !== s.id)
+                        : [...current, s.id];
+                      setNewTheory({ ...newTheory, linkedSuspects: updated });
+                    }}
+                    className={`px-3 py-1 text-xs border transition-colors ${(newTheory.linkedSuspects || []).includes(s.id)
+                        ? 'bg-[#d4af37] text-black border-[#d4af37]'
+                        : 'bg-transparent border-white/10 text-white/40 hover:border-white/40'
+                      }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase text-white/40 mb-2">Supporting Evidence</label>
+              <div className="flex flex-wrap gap-2">
+                {clues.map(c => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    onClick={() => {
+                      const current = newTheory.linkedClues || [];
+                      const updated = current.includes(c.id)
+                        ? current.filter(id => id !== c.id)
+                        : [...current, c.id];
+                      setNewTheory({ ...newTheory, linkedClues: updated });
+                    }}
+                    className={`px-3 py-1 text-xs border transition-colors ${(newTheory.linkedClues || []).includes(c.id)
+                        ? 'bg-[#d4af37] text-black border-[#d4af37]'
+                        : 'bg-transparent border-white/10 text-white/40 hover:border-white/40'
+                      }`}
+                  >
+                    {c.title}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="flex justify-end pt-2">
             <button type="submit" className="px-6 py-2 bg-[#d4af37] text-black text-xs uppercase font-bold tracking-widest">
               Propose Theory
@@ -123,6 +174,59 @@ const TheoriesView: React.FC<TheoriesViewProps> = ({ theories, suspects, clues, 
                       onChange={e => setEditForm({ ...editForm, content: e.target.value })}
                     />
                   </div>
+
+                  {/* Edit Links */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] uppercase text-white/40 mb-2">Implicated Suspects</label>
+                      <div className="flex flex-wrap gap-2">
+                        {suspects.map(s => (
+                          <button
+                            type="button"
+                            key={s.id}
+                            onClick={() => {
+                              const current = editForm.linkedSuspects || [];
+                              const updated = current.includes(s.id)
+                                ? current.filter(id => id !== s.id)
+                                : [...current, s.id];
+                              setEditForm({ ...editForm, linkedSuspects: updated });
+                            }}
+                            className={`px-3 py-1 text-xs border transition-colors ${(editForm.linkedSuspects || []).includes(s.id)
+                                ? 'bg-[#d4af37] text-black border-[#d4af37]'
+                                : 'bg-transparent border-white/10 text-white/40 hover:border-white/40'
+                              }`}
+                          >
+                            {s.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase text-white/40 mb-2">Supporting Evidence</label>
+                      <div className="flex flex-wrap gap-2">
+                        {clues.map(c => (
+                          <button
+                            type="button"
+                            key={c.id}
+                            onClick={() => {
+                              const current = editForm.linkedClues || [];
+                              const updated = current.includes(c.id)
+                                ? current.filter(id => id !== c.id)
+                                : [...current, c.id];
+                              setEditForm({ ...editForm, linkedClues: updated });
+                            }}
+                            className={`px-3 py-1 text-xs border transition-colors ${(editForm.linkedClues || []).includes(c.id)
+                                ? 'bg-[#d4af37] text-black border-[#d4af37]'
+                                : 'bg-transparent border-white/10 text-white/40 hover:border-white/40'
+                              }`}
+                          >
+                            {c.title}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex gap-2 justify-end">
                     <button type="button" onClick={() => setEditingId(null)} className="px-4 py-2 border border-white/10 text-white/60 hover:text-white text-xs uppercase">Cancel</button>
                     <button type="submit" className="px-4 py-2 bg-[#d4af37] text-black text-xs uppercase font-bold">Save Changes</button>

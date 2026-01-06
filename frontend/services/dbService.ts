@@ -23,7 +23,10 @@ export class DbService {
         return (data || []).map((c: any) => ({
             ...c,
             parties: (c.parties || []).map((p: any) => ({ ...p, imageUrl: p.image_url })),
-            clues: c.clues || [],
+            clues: (c.clues || []).map((cl: any) => ({
+                ...cl,
+                linkedSuspects: cl.linked_suspects
+            })),
             timeline: (c.timeline || []).map((t: any) => ({
                 ...t,
                 involvedSuspects: t.involved_suspects,
@@ -105,12 +108,16 @@ export class DbService {
                 title: clue.title,
                 description: clue.description,
                 source: clue.source,
-                confidence: clue.confidence
+                confidence: clue.confidence,
+                linked_suspects: clue.linkedSuspects || []
             }])
             .select()
             .single();
         if (error) throw error;
-        return data as Clue;
+        return {
+            ...data,
+            linkedSuspects: data.linked_suspects
+        } as Clue;
     }
 
     async addTimelineEvent(caseId: string, event: Partial<TimelineEvent>): Promise<TimelineEvent> {
@@ -211,14 +218,26 @@ export class DbService {
 
     // --- Clues ---
     async updateClue(clueId: string, updates: Partial<Clue>): Promise<Clue> {
+        const payload: any = {
+            title: updates.title,
+            description: updates.description,
+            source: updates.source,
+            confidence: updates.confidence,
+            linked_suspects: updates.linkedSuspects
+        };
+        Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
         const { data, error } = await supabase
             .from('clues')
-            .update(updates)
+            .update(payload)
             .eq('id', clueId)
             .select()
             .single();
         if (error) throw error;
-        return data as Clue;
+        return {
+            ...data,
+            linkedSuspects: data.linked_suspects
+        } as Clue;
     }
 
     async deleteClue(clueId: string): Promise<void> {

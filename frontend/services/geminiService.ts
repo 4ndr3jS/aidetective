@@ -4,7 +4,7 @@ const HACK_CLUB_API_URL = "/api/ai/proxy/v1/chat/completions";
 const MODEL = "gpt-4o";
 
 const SYSTEM_INSTRUCTION = `
-You are Elias Thorne, a world-renowned private investigator. 
+You are Benoit Blanc, a world-renowned private investigator. 
 Your persona is inspired by Benoit Blanc: brilliant, slightly theatrical, Southern-mannered, and incredibly observant.
 You speak with a sophisticated but grounded drawl, using colorful metaphors to describe the complexities of a case.
 
@@ -87,6 +87,91 @@ export class DetectiveAI {
     const theory = activeCase.theories.find(t => t.id === theoryId);
     if (!theory) return "I don't see that theory.";
     return this.analyzeCase(activeCase, `Challenge this theory: "${theory.title} - ${theory.content}". Find any flaws or contradictions.`);
+  }
+
+  async generateAccusationJSON(activeCase: InvestigationCase): Promise<any> {
+    if (!this.apiKey) {
+      console.warn("Hack Club API Key is missing.");
+      throw new Error("API Key missing");
+    }
+
+    const caseContext = `
+    CASE FILE:
+    Title: ${activeCase.title}
+    Description: ${activeCase.description}
+    Suspects: ${activeCase.parties.map(s => `ID: ${s.id} | Name: ${s.name} | Role: ${s.role} | Desc: ${s.description} | Alibi: ${s.alibi} | Motive: ${s.motive}`).join('\n')}
+    Evidence: ${activeCase.clues.map(c => `ID: ${c.id} | Title: ${c.title} | Desc: ${c.description} | Significance: ${c.confidence}`).join('\n')}
+    Timeline: ${activeCase.timeline.map(t => `Time: ${t.time} | Event: ${t.description} | Involves: ${t.involvedSuspects.join(', ')}`).join('\n')}
+    Statements: ${activeCase.statements.map(s => `Speaker: ${s.speakerName} | Content: "${s.content}"`).join('\n')}
+    `;
+
+    const jsonStructure = `{
+      "case_overview": { "summary": "string" },
+      "victim_profile": { "name": "string", "background": "string" },
+      "suspects_analysis": [ { "suspect_id": "string (must match source ID)", "name": "string", "initial_suspicion": "string", "why_not_guilty": "string (unless this is the killer)" } ],
+      "key_evidence": [ { "evidence_id": "string", "description": "string", "importance": "string" } ],
+      "timeline_reconstruction": [ { "time": "string", "event": "string", "implication": "string" } ],
+      "motive": { "description": "string" },
+      "method": { "description": "string" },
+      "killer_reveal": { "suspect_id": "string", "name": "string", "reveal_line": "string" },
+      "final_monologue": { "text": "string" }
+    }`;
+
+    const prompt = `
+    ${SYSTEM_INSTRUCTION}
+    
+    TASK: Analyze the provided case file and determine the killer.
+    If the case data is incomplete or ambiguous, make the most logical deduction based on available evidence, or creatively fill in the gaps to create a satisfying narrative conclusion consistent with the genre.
+    
+    OUTPUT FORMAT: You must return ONLY valid JSON matching this structure exactly:
+    ${jsonStructure}
+    
+    Do not include markdown formatting like \`\`\`json. Just the raw JSON string.
+    
+    CONTEXT:
+    ${caseContext}
+    `;
+
+    try {
+      const response = await fetch(HACK_CLUB_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: [
+            { role: "system", content: "You are a JSON generator." }, // Override system for strict JSON
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7,
+          response_format: { type: "json_object" } // Force JSON mode if supported by proxy/model, otherwise prompt handles it
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+
+      if (!content) throw new Error("Empty response from AI");
+
+      // Attempt to parse JSON
+      try {
+        const parsed = JSON.parse(content);
+        return parsed;
+      } catch (e) {
+        console.error("Failed to parse AI JSON response:", content);
+        throw new Error("Invalid JSON response from AI");
+      }
+
+    } catch (error) {
+      console.error("AI Accusation Error:", error);
+      throw error;
+    }
   }
 }
 

@@ -216,7 +216,7 @@ const Workspace: React.FC<WorkspaceProps> = ({ activeCase, onBack, onUpdateCase 
           )}
           {activeTab === 'accusation' && (
             <AccusationView
-              suspects={activeCase.parties}
+              activeCase={activeCase}
               onPresentCase={(suspectId, reasoning) => {
                 const updated = {
                   ...activeCase,
